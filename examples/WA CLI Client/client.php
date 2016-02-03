@@ -5,8 +5,8 @@
  *************************************/
 
  // ################ CONFIG PATHS #####################
- require_once('/home/whatsapi/Chat-API/src/whatsprot.class.php');
- require('/home/whatsapi/Chat-API/src/events/MyEvents.php');
+ require_once('/../Chat-API/src/whatsprot.class.php');
+ require('/../Chat-API/src/events/MyEvents.php');
  // ###################################################
 
  // ############## CONFIG TIMEZONE ###################
