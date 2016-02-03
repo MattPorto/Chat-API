@@ -309,7 +309,7 @@ do {
                $string = $m->NodeString("");
                $xml = new SimpleXMLElement($string);
                $body = (string)$xml->body;
-               print("New message from " . $contact . ": " . $body . "\n");
+               print($nickname . ": " . $body . "\n");
               }
               
               if ($compose) {
