@@ -5,12 +5,12 @@
  *************************************/
 
  // ################ CONFIG PATHS #####################
- require_once '../../src/whatsprot.class.php';
- require '../../src//events/MyEvents.php';
+ require_once('/home/whatsapi/Chat-API/src/whatsprot.class.php');
+ require('/home/whatsapi/Chat-API/src/events/MyEvents.php');
  // ###################################################
 
  // ############## CONFIG TIMEZONE ###################
- date_default_timezone_set('Europe/Madrid');
+ date_default_timezone_set('America/Sao_Paulo');
  // ##################################################
 
 //  ############## DEBUG DEV MODE ####################
@@ -55,7 +55,9 @@ if ((!file_exists($fileName))) {
     $number = trim(fgets(STDIN));
     $w = new WhatsProt($number, $nickname, $debug);
 
-    try {
+    //If this is your first time with the api , uncomment the block below for the registration
+    
+    /*try {
         $result = $w->codeRequest('sms');
     } catch (Exception $e) {
         echo 'there is an error'.$e;
@@ -66,7 +68,10 @@ if ((!file_exists($fileName))) {
         $result = $w->codeRegister($code);
     } catch (Exception $e) {
         echo 'there is an error';
-    }
+    }*/
+
+    echo '\nYour Password > ';
+    $pw = trim(fgets(STDIN)); 
 
     echo "\nYour nickname > ";
     $nickname = trim(fgets(STDIN));
@@ -89,7 +94,7 @@ if ((!file_exists($fileName))) {
     $query->execute(
         [
             ':username' => $number,
-            ':password' => $result->pw,
+            ':password' => $pw,
             ':nickname' => $nickname,
             ':login'    => '1',
         ]
@@ -237,6 +242,39 @@ do {
         echo ":)\n\n";
         exit();
         break;
+
+      case '/newgroup';
+        $participants = array();
+        $addmore = 'yes';
+        do {
+          echo "\nEnter the phone number of a participant: ";
+          $newpart = trim(fgets(STDIN));
+          do {
+            echo "\nIs it right yes/no > ";
+            $check = trim(fgets(STDIN));
+            if ($check != 'yes') {
+              echo "\nEnter the number you want to add > ";
+              $newpart = trim(fgets(STDIN));
+            }
+          array_push($participants, $newpart);
+          } while ($check != 'yes');
+          echo "\nAdd more participants yes/no >";
+          $addmore = trim(fgets(STDIN));
+        } while ($check != 'yes');
+        echo "\nEnter the group name > ";
+        $groupname = trim(fgets(STDIN));
+        do {
+            echo "\nIs it right yes/no > ";
+            $check = trim(fgets(STDIN));
+            if ($check != 'yes') {
+                echo "\nEnter the group name > ";
+                $groupname = trim(fgets(STDIN));
+            }
+        } while ($check != 'yes');
+        $w->sendGroupsChatCreate($groupname, $participants);
+        break;
+
+
       case '/chat':
         echo "\nEnter the name of the contact > ";
         $nickname = trim(fgets(STDIN));
@@ -246,18 +284,18 @@ do {
             if ($check != 'yes') {
                 echo "\nEnter the number you want to add > ";
                 $nickname = trim(fgets(STDIN));
-            }
+            }       
         } while ($check != 'yes');
 
         echo "\n\n";
         echo "You are chatting with $nickname\n";
         echo "=================================\n\n";
         $contact = findPhoneByNickname($nickname);
-        $latestMsgs = getLatestMessages($contact);
-        $GLOBALS['current_contact'] = $contact;
+       // $latestMsgs = getLatestMessages($contact);
+       /* $GLOBALS['current_contact'] = $contact;
         foreach ($latestMsgs as $msg) {
             echo "\n- ".$nickname.': '.$msg['message'].'    '.date('t/m/Y h:i:s A', $msg['t'])."\n";
-        }
+        }*/
           $pn = new ProcessNode($w, $contact);
           $w->setNewMessageBind($pn);
           $chatting = true;
@@ -268,18 +306,23 @@ do {
               $msgs = $w->getMessages();
               foreach ($msgs as $m) {
                   // process inbound messages
-              //print($m->NodeString("") . "\n");
+               $string = $m->NodeString("");
+               $xml = new SimpleXMLElement($string);
+               $body = (string)$xml->body;
+               print("New message from " . $contact . ": " . $body . "\n");
               }
+              
               if ($compose) {
                   $w->sendMessageComposing($contact);
                   $compose = false;
               }
+              
               if ($lastSeen) {
                   if (!in_array($contact, $GLOBALS['online_contacts'])) {
-                      $w->sendGetRequestLastSeen($contact);
+                      $w->sendPresenceSubscription($contact);
                   }
                   $lastSeen = false;
-              }
+             } 
               $line = fgets_u(STDIN);
               /*
               $typing = true;
@@ -320,8 +363,31 @@ do {
                       echo "[] Last seen $contact: ";
                       $w->sendMessagePaused($contact);
                       $compose = true;
-                      $w->sendGetRequestLastSeen($contact);
+                      $w->sendPresenceSubscription($contact);
                       break;
+		  
+                  case '/sendimage':
+                      echo "\nEnter the URL or path of the image > ";
+                      $filepath = trim(fgets(STDIN));
+                      echo "\nSay something about the image > ";
+                      $caption = trim(fgets(STDIN));
+                      $target = $contact;
+                      $w->sendMessageImage($target, $filepath, false, $fsize, $fhash, $caption);
+                      $w->pollMessage();
+                      break;
+
+                  case '/sendvideo':
+                      echo "\nEnter the URL or path of the video > ";
+                      $filepath = trim(fgets(STDIN));
+                      echo "\nSay something about the video > ";
+                      $caption = trim(fgets(STDIN));
+                      $target = $contact;
+                      $w->sendMessageVideo($target, $filepath, false, $fsize, $fhash, $caption);
+                      $w->pollMessage();
+                      break;
+
+                  ////////////////////////// test ///////////////////
+
                   case '/block':
                       echo "< User is now blocked >\n";
                       $w->sendMessagePaused($contact);
@@ -365,7 +431,7 @@ do {
                       }
                       $compose = true;
                       break;
-                }
+                  }
               }
           }
         break;
